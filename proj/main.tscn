@@ -1,0 +1,131 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://main.gd" type="Script" id=1]
+[ext_resource path="res://res/note.png" type="Texture" id=2]
+
+[sub_resource type="AudioStreamGenerator" id=1]
+buffer_length = 0.1
+
+[sub_resource type="AudioStreamMicrophone" id=2]
+
+[node name="main" type="Control"]
+margin_top = 32.0
+margin_bottom = 32.0
+script = ExtResource( 1 )
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="stream_player" type="AudioStreamPlayer" parent="."]
+stream = SubResource( 1 )
+autoplay = true
+
+[node name="stream_sampler" type="AudioStreamPlayer" parent="."]
+
+[node name="mic_device" type="AudioStreamPlayer" parent="."]
+stream = SubResource( 2 )
+autoplay = true
+bus = "Record"
+
+[node name="lbl_audio_o" type="Label" parent="."]
+margin_left = 64.0
+margin_top = 32.0
+margin_right = 320.0
+margin_bottom = 56.0
+text = "Audio Output Device"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="btn_audio_o" type="OptionButton" parent="."]
+margin_left = 64.0
+margin_top = 64.0
+margin_right = 320.0
+margin_bottom = 96.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="lbl_audio_i" type="Label" parent="."]
+margin_left = 64.0
+margin_top = 192.0
+margin_right = 320.0
+margin_bottom = 216.0
+text = "Audio Input Device"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="btn_audio_i" type="OptionButton" parent="."]
+margin_left = 64.0
+margin_top = 224.0
+margin_right = 320.0
+margin_bottom = 256.0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="btn_rec" type="Button" parent="."]
+margin_left = 64.0
+margin_top = 288.0
+margin_right = 192.0
+margin_bottom = 320.0
+text = "Rec"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="btn_play" type="Button" parent="."]
+margin_left = 64.0
+margin_top = 352.0
+margin_right = 192.0
+margin_bottom = 384.0
+text = "Play"
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="lbl_note" type="Label" parent="."]
+margin_left = 704.0
+margin_top = 288.0
+margin_right = 832.0
+margin_bottom = 320.0
+text = "Octave Up: X
+Octave Down: Z"
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="bnt_tone" type="OptionButton" parent="."]
+margin_left = 384.0
+margin_top = 288.0
+margin_right = 640.0
+margin_bottom = 320.0
+text = "cos"
+items = [ "cos", null, false, 0, null, "saw", null, false, 1, null, "square", null, false, 2, null ]
+selected = 0
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="lbl_octave" type="Label" parent="."]
+margin_left = 872.0
+margin_top = 288.0
+margin_right = 912.0
+margin_bottom = 320.0
+text = "X"
+align = 2
+valign = 1
+__meta__ = {
+"_edit_use_anchors_": false
+}
+
+[node name="note" type="Sprite" parent="."]
+position = Vector2( 648, 416 )
+texture = ExtResource( 2 )
+[connection signal="item_selected" from="btn_audio_o" to="." method="_on_btn_audio_o_item_selected"]
+[connection signal="item_selected" from="btn_audio_i" to="." method="_on_btn_audio_i_item_selected"]
+[connection signal="pressed" from="btn_rec" to="." method="_on_btn_rec_pressed"]
+[connection signal="pressed" from="btn_play" to="." method="_on_btn_play_pressed"]
+[connection signal="item_selected" from="bnt_tone" to="." method="_on_bnt_tone_item_selected"]
