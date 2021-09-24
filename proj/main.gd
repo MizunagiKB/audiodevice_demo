@@ -6,7 +6,7 @@ var stream_playback: AudioStreamGeneratorPlayback = null
 var mic_device: AudioEffectRecord = null
 var recording_data: AudioStreamSample = null
 
-var o_synth: CMiniSynth
+var o_minisynth: CMiniSynth
 
 
 func _ready():
@@ -28,10 +28,10 @@ func _ready():
     var idx = AudioServer.get_bus_index("Record")
     mic_device = AudioServer.get_bus_effect(idx, 0)
 
-    o_synth = CMiniSynth.new()
+    o_minisynth = CMiniSynth.new()
 
-    o_synth.adsr_atk = $slider_atk.value
-    o_synth.adsr_rel = $slider_rel.value
+    o_minisynth.adsr_atk = $slider_atk.value
+    o_minisynth.adsr_rel = $slider_rel.value
 
     $stream_player.play()
 
@@ -40,29 +40,29 @@ func _input(event):
 
     if event is InputEventKey:
         match event.scancode:
-            KEY_A: o_synth.write_note_status(0, event.pressed)
-            KEY_W: o_synth.write_note_status(1, event.pressed)
-            KEY_S: o_synth.write_note_status(2, event.pressed)
-            KEY_E: o_synth.write_note_status(3, event.pressed)
-            KEY_D: o_synth.write_note_status(4, event.pressed)
-            KEY_F: o_synth.write_note_status(5, event.pressed)
-            KEY_T: o_synth.write_note_status(6, event.pressed)
-            KEY_G: o_synth.write_note_status(7, event.pressed)
-            KEY_Y: o_synth.write_note_status(8, event.pressed)
-            KEY_H: o_synth.write_note_status(9, event.pressed)
-            KEY_U: o_synth.write_note_status(10, event.pressed)
-            KEY_J: o_synth.write_note_status(11, event.pressed)
-            KEY_K: o_synth.write_note_status(12, event.pressed)
-            KEY_O: o_synth.write_note_status(13, event.pressed)
-            KEY_L: o_synth.write_note_status(14, event.pressed)
-            KEY_P: o_synth.write_note_status(15, event.pressed)
-            KEY_SEMICOLON: o_synth.write_note_status(16, event.pressed)
-            KEY_COLON: o_synth.write_note_status(17, event.pressed)
+            KEY_A: o_minisynth.write_note_status(0, event.pressed)
+            KEY_W: o_minisynth.write_note_status(1, event.pressed)
+            KEY_S: o_minisynth.write_note_status(2, event.pressed)
+            KEY_E: o_minisynth.write_note_status(3, event.pressed)
+            KEY_D: o_minisynth.write_note_status(4, event.pressed)
+            KEY_F: o_minisynth.write_note_status(5, event.pressed)
+            KEY_T: o_minisynth.write_note_status(6, event.pressed)
+            KEY_G: o_minisynth.write_note_status(7, event.pressed)
+            KEY_Y: o_minisynth.write_note_status(8, event.pressed)
+            KEY_H: o_minisynth.write_note_status(9, event.pressed)
+            KEY_U: o_minisynth.write_note_status(10, event.pressed)
+            KEY_J: o_minisynth.write_note_status(11, event.pressed)
+            KEY_K: o_minisynth.write_note_status(12, event.pressed)
+            KEY_O: o_minisynth.write_note_status(13, event.pressed)
+            KEY_L: o_minisynth.write_note_status(14, event.pressed)
+            KEY_P: o_minisynth.write_note_status(15, event.pressed)
+            KEY_SEMICOLON: o_minisynth.write_note_status(16, event.pressed)
+            KEY_COLON: o_minisynth.write_note_status(17, event.pressed)
 
     if event.is_action_released("octave_inc"):
-        o_synth.change_octave(CMiniSynth.E_OCTAVE_ORDER.INC)
+        o_minisynth.change_octave(CMiniSynth.E_OCTAVE_ORDER.INC)
     if event.is_action_released("octave_dec"):
-        o_synth.change_octave(CMiniSynth.E_OCTAVE_ORDER.DEC)
+        o_minisynth.change_octave(CMiniSynth.E_OCTAVE_ORDER.DEC)
 
 
 func _process(delta):
@@ -72,11 +72,11 @@ func _process(delta):
 
     buf.resize(frame_size)
 
-    o_synth.update(delta, buf)
+    o_minisynth.update(delta, buf)
 
     stream_playback.push_buffer(buf.buffer)
 
-    $lbl_octave.text = str(o_synth.octave_curr)
+    $lbl_octave.text = str(o_minisynth.octave_curr)
 
 
 func _on_btn_audio_o_item_selected(id):
@@ -114,12 +114,12 @@ func _on_btn_play_pressed():
 
 
 func _on_bnt_tone_item_selected(id):
-    o_synth.tone_curr = id
+    o_minisynth.tone_curr = id
 
 
 func _on_slider_atk_value_changed(value):
-    o_synth.adsr_atk = value
+    o_minisynth.adsr_atk = value
 
 
 func _on_slider_rel_value_changed(value):
-    o_synth.adsr_rel = value
+    o_minisynth.adsr_rel = value

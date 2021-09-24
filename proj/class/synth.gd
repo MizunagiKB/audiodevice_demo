@@ -9,8 +9,9 @@ const VOLUME = 0.25
 
 
 enum E_NOTE_STATUS {
-    KON_TRIG,
+    KON,
     KON_KEEP,
+    KOF_KEEP,
     KOF
 }
 
@@ -29,7 +30,7 @@ var adsr_atk: float = 0.1
 var adsr_rel: float = 0.5
 var tone_curr: int = 0
 var octave_curr: int = 5
-var list_note_status: Array = []
+var dict_note_status: Dictionary = {}
 
 
 class CAudioBuffer:
@@ -42,6 +43,7 @@ class CAudioBuffer:
 
 class CGenerator:
     func generate(deg: float) -> float:
+        assert(false)
         return 0.0
 
 class CGeneratorCos:
@@ -65,13 +67,13 @@ class CGeneratorSquare:
         return v 
 
 
-class CSynth:
+class CVoice:
 
     var e_status: int = E_NOTE_STATUS.KOF
     var note: int = 0
     var step: int = 0
     var elapse_time: float = 0.0
-    var release_time: float = 9999.0
+    var release_time: float = 0.0
     
     var attack: float = 0.2
     var release: float = 0.5
@@ -79,31 +81,42 @@ class CSynth:
     func _init(new_note: int):
         self.note = new_note
 
+    func is_play() -> bool:
+        return self.e_status in [E_NOTE_STATUS.KON, E_NOTE_STATUS.KON_KEEP]
+
+    func is_complete() -> bool:
+        return self.e_status == E_NOTE_STATUS.KOF
+
     func calc():
-        if self.e_status == E_NOTE_STATUS.KOF:
+        if self.e_status == E_NOTE_STATUS.KOF_KEEP:
             return 1.0 - min(self.release_time / self.release, 1.0)
+        elif self.e_status == E_NOTE_STATUS.KOF:
+            return 0.0
         else:
             return min(self.elapse_time / self.attack, 1.0)
 
     func kon():
         if self.e_status == E_NOTE_STATUS.KOF:
-            self.e_status = E_NOTE_STATUS.KON_TRIG
+            self.e_status = E_NOTE_STATUS.KON
             self.release_time = 0.0
             self.elapse_time = 0.0
             self.step = 0
 
     func kof():
-        self.e_status = E_NOTE_STATUS.KOF
+        if self.e_status != E_NOTE_STATUS.KOF:
+            self.e_status = E_NOTE_STATUS.KOF_KEEP
 
     func update(dtime: float, buf: CAudioBuffer, o_generator: CGenerator) -> void:
 
-        if self.e_status == E_NOTE_STATUS.KOF:
-            if self.release_time > self.release:
-                return
-            else:
+        if self.is_complete() == true:
+            return
+        else:
+            if self.e_status == E_NOTE_STATUS.KOF_KEEP:
                 self.release_time += dtime
+                if self.release_time > self.release:
+                    self.e_status = E_NOTE_STATUS.KOF
             
-        elif self.e_status == E_NOTE_STATUS.KON_TRIG:
+        if self.e_status == E_NOTE_STATUS.KON:
             self.e_status = E_NOTE_STATUS.KON_KEEP
 
         var freq: float = BASE_FREQ * pow(2, (self.note - CENTER_NOTE) / 12.0)
@@ -111,7 +124,6 @@ class CSynth:
 
         var v: float = 0.0
         for n in range(buf.buffer.size()):
-            # var s = self.step + (cos(deg * self.step / 2000) * 90)
             v = o_generator.generate(deg * self.step)
             v *= self.calc()
             v *= VOLUME
@@ -129,17 +141,25 @@ func write_note_status(note_v: int, note_trig: bool) -> void:
     assert(target_note < 128)
 
     if note_trig == true:
-        list_note_status[target_note].kon()
+        if dict_note_status.has(target_note) == true:
+            if dict_note_status[target_note].is_play():
+                return
+
+        var o_voice: CVoice = CVoice.new(target_note)
+        o_voice.kon()
+        dict_note_status[target_note] = o_voice
     else:
-        list_note_status[target_note].kof()
+        if dict_note_status.has(target_note) != true:
+            return
+
+        var o_voice: CVoice = dict_note_status[target_note]
+        o_voice.kof()
 
 
 func change_octave(e_octave_order: int) -> void:
 
-    for o in list_note_status:
-        var o_synth: CSynth = o
-        if o_synth.e_status != E_NOTE_STATUS.KOF:
-            return
+    if dict_note_status.size() > 0:
+        return
 
     match e_octave_order:
         E_OCTAVE_ORDER.INC:
@@ -162,14 +182,16 @@ func update(dtime: float, buf: CAudioBuffer):
         E_TONE.SQUARE:
             o_generator = CGeneratorSquare.new()
 
-    for o in list_note_status:
-        var o_synth: CSynth = o
-        o_synth.attack = adsr_atk
-        o_synth.release = adsr_rel
-        o_synth.update(dtime, buf, o_generator)
+    var list_k: Array = []
 
+    for o in dict_note_status.values():
+        var o_voice: CVoice = o
+        if o_voice.is_complete() == true:
+            list_k.append(o_voice.note)
+        else:
+            o_voice.attack = adsr_atk
+            o_voice.release = adsr_rel
+            o_voice.update(dtime, buf, o_generator)
 
-func _init():
-
-    for n in range(NOTE_RANGE):
-        list_note_status.append(CSynth.new(n))
+    for note in list_k:
+        dict_note_status.erase(note)

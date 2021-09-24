@@ -4,7 +4,7 @@
 [ext_resource path="res://res/note.png" type="Texture" id=2]
 
 [sub_resource type="AudioStreamGenerator" id=1]
-buffer_length = 0.1
+buffer_length = 0.05
 
 [sub_resource type="AudioStreamMicrophone" id=2]
 
