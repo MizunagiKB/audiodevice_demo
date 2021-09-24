@@ -6,7 +6,8 @@ const BASE_FREQ: float = 440.0
 const CENTER_NOTE: int = 69
 const NOTE_RANGE = 128
 const VOLUME = 0.25
-
+const V_NOTE_W = [0, 2, 4, 5, 7, 9, 11, 12, 14, 16, 17]
+const V_NOTE_B = [-1, 1, 3, -1, 6, 8, 10, -1, 13, 15, -1, -1]
 
 enum E_NOTE_STATUS {
     KON,
@@ -26,11 +27,14 @@ enum E_OCTAVE_ORDER {
     DEC
 }
 
+
 var adsr_atk: float = 0.1
 var adsr_rel: float = 0.5
 var tone_curr: int = 0
-var octave_curr: int = 5
+var v_note_curr: int = -1
+var v_note_on: bool = false
 var dict_note_status: Dictionary = {}
+var stream_playback: AudioStreamGeneratorPlayback = null
 
 
 class CAudioBuffer:
@@ -42,7 +46,7 @@ class CAudioBuffer:
 
 
 class CGenerator:
-    func generate(deg: float) -> float:
+    func generate(_deg: float) -> float:
         assert(false)
         return 0.0
 
@@ -137,7 +141,7 @@ class CVoice:
 
 func write_note_status(note_v: int, note_trig: bool) -> void:
 
-    var target_note: int = (octave_curr * 12) + note_v
+    var target_note: int = ($spin_octave.value * 12) + note_v
 
     assert(target_note > -1)
     assert(target_note < 128)
@@ -163,13 +167,15 @@ func change_octave(e_octave_order: int) -> void:
     if dict_note_status.size() > 0:
         return
 
+    var v = $spin_octave.value
+
     match e_octave_order:
         E_OCTAVE_ORDER.INC:
-            octave_curr += 1
+            v += 1
         E_OCTAVE_ORDER.DEC:
-            octave_curr -= 1
+            v -= 1
 
-    octave_curr = clamp(octave_curr, -1, 6)
+    $spin_octave.value = clamp(v, -1, 6)
 
 
 func update(dtime: float, buf: CAudioBuffer):
@@ -196,4 +202,107 @@ func update(dtime: float, buf: CAudioBuffer):
             o_voice.update(dtime, buf, o_generator)
 
     for note in list_k:
-        dict_note_status.erase(note)
+        var _v = dict_note_status.erase(note)
+
+
+func _ready():
+
+    stream_playback = $stream_player.get_stream_playback()
+
+    adsr_atk = $slider_atk.value
+    adsr_rel = $slider_rel.value
+
+    $stream_player.play()
+
+
+func _process(delta):
+
+    var frame_size = stream_playback.get_frames_available()
+    var buf = CAudioBuffer.new()
+
+    buf.resize(frame_size)
+
+    update(delta, buf)
+
+    var _v = stream_playback.push_buffer(buf.buffer)
+
+
+func _input(event):
+
+    if event is InputEventKey:
+        match event.scancode:
+            KEY_A: write_note_status(0, event.pressed)
+            KEY_W: write_note_status(1, event.pressed)
+            KEY_S: write_note_status(2, event.pressed)
+            KEY_E: write_note_status(3, event.pressed)
+            KEY_D: write_note_status(4, event.pressed)
+            KEY_F: write_note_status(5, event.pressed)
+            KEY_T: write_note_status(6, event.pressed)
+            KEY_G: write_note_status(7, event.pressed)
+            KEY_Y: write_note_status(8, event.pressed)
+            KEY_H: write_note_status(9, event.pressed)
+            KEY_U: write_note_status(10, event.pressed)
+            KEY_J: write_note_status(11, event.pressed)
+            KEY_K: write_note_status(12, event.pressed)
+            KEY_O: write_note_status(13, event.pressed)
+            KEY_L: write_note_status(14, event.pressed)
+            KEY_P: write_note_status(15, event.pressed)
+            KEY_SEMICOLON: write_note_status(16, event.pressed)
+            KEY_COLON: write_note_status(17, event.pressed)
+
+    if event.is_action_released("octave_inc"):
+        change_octave(E_OCTAVE_ORDER.INC)
+    if event.is_action_released("octave_dec"):
+        change_octave(E_OCTAVE_ORDER.DEC)
+
+
+func get_note_position(position: Vector2) -> int:
+
+    var ary_index: int = 0
+    var note: int = -1
+
+    if position.y < 64:
+        ary_index = int((position.x + 24) / 48)
+        if ary_index < V_NOTE_B.size():
+            note = V_NOTE_B[ary_index]
+
+    if note == -1:
+        ary_index = int(position.x / 48)
+        if ary_index < V_NOTE_W.size():
+            note = V_NOTE_W[ary_index]
+
+    return note
+
+
+func _on_img_keyboard_gui_input(event):
+
+    var note: int = -1
+
+    if event is InputEventMouseButton:
+        note = get_note_position(event.position)
+        if note != -1:
+            if event.button_index == BUTTON_LEFT:
+                write_note_status(note, event.pressed)
+                v_note_curr = note
+                v_note_on = event.pressed
+
+    elif event is InputEventMouseMotion:
+        if v_note_on == true:
+            note = get_note_position(event.position)
+            if note != v_note_curr:
+                write_note_status(v_note_curr, false)
+                if note != -1:
+                    write_note_status(note, true)
+                    v_note_curr = note
+
+
+func _on_btn_tone_item_selected(id):
+    tone_curr = id
+
+
+func _on_slider_atk_value_changed(value):
+    adsr_atk = value
+
+
+func _on_slider_rel_value_changed(value):
+    adsr_rel = value

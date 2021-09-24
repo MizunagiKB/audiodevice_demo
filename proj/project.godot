@@ -12,7 +12,7 @@ _global_script_classes=[ {
 "base": "Node",
 "class": "CMiniSynth",
 "language": "GDScript",
-"path": "res://class/synth.gd"
+"path": "res://class/mini_synth.gd"
 } ]
 _global_script_class_icons={
 "CMiniSynth": ""
