@@ -62,8 +62,10 @@ class CGeneratorSquare:
         var v = (((int(deg) % 180) / 180.0) - 0.5) * 2
         if v > 0:
             v = 1.0
-        else:
+        elif v < 0:
             v = -1.0
+        else:
+            v = 0
         return v 
 
 
