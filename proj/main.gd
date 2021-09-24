@@ -3,7 +3,6 @@ extends Control
 
 const BASE_FREQ: float = 440.0
 const CENTER_NOTE: int = 69
-const MIN_AUDIO_BUFFER_SIZE = 44000 * 0.1
 const NOTE_RANGE = 128
 const VOLUME = 0.25
 
@@ -144,6 +143,8 @@ func _ready():
     var idx = AudioServer.get_bus_index("Record")
     mic_device = AudioServer.get_bus_effect(idx, 0)
 
+    $stream_player.play()
+
 
 func _input(event):
 
@@ -177,11 +178,6 @@ func _input(event):
 func _process(delta):
 
     var frame_size = stream_playback.get_frames_available()
-
-    if frame_size < MIN_AUDIO_BUFFER_SIZE:
-        return
-    else:
-        frame_size = MIN_AUDIO_BUFFER_SIZE
 
     var w_buffer = PoolVector2Array()
 

@@ -18,7 +18,6 @@ __meta__ = {
 
 [node name="stream_player" type="AudioStreamPlayer" parent="."]
 stream = SubResource( 1 )
-autoplay = true
 
 [node name="stream_sampler" type="AudioStreamPlayer" parent="."]
 
