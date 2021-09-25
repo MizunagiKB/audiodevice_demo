@@ -142,6 +142,10 @@ class CVoice:
 func write_note_status(note_v: int, note_trig: bool) -> void:
 
     var target_note: int = ($spin_octave.value * 12) + note_v
+    write_note_status_raw(target_note, note_trig)
+
+
+func write_note_status_raw(target_note: int, note_trig: bool) -> void:
 
     assert(target_note > -1)
     assert(target_note < 128)
@@ -250,6 +254,13 @@ func _input(event):
             KEY_SEMICOLON: write_note_status(16, event.pressed)
             KEY_COLON: write_note_status(17, event.pressed)
 
+    elif event is InputEventMIDI:
+        match event.message:
+            MIDI_MESSAGE_NOTE_ON:
+                write_note_status_raw(event.pitch, true)
+            MIDI_MESSAGE_NOTE_OFF:
+                write_note_status_raw(event.pitch, false)
+
     if event.is_action_released("octave_inc"):
         change_octave(E_OCTAVE_ORDER.INC)
     if event.is_action_released("octave_dec"):
@@ -306,3 +317,10 @@ func _on_slider_atk_value_changed(value):
 
 func _on_slider_rel_value_changed(value):
     adsr_rel = value
+
+
+func _on_bnt_midi_i_toggled(button_pressed):
+    if button_pressed == true:
+        OS.open_midi_inputs()
+    else:
+        OS.close_midi_inputs()

@@ -39,6 +39,8 @@ margin_left = 128.0
 margin_top = 192.0
 margin_right = 256.0
 margin_bottom = 224.0
+focus_mode = 0
+enabled_focus_mode = 0
 text = "Cos"
 items = [ "Cos", null, false, 0, null, "Saw", null, false, 1, null, "Square", null, false, 2, null ]
 selected = 0
@@ -112,7 +114,19 @@ texture = ExtResource( 2 )
 __meta__ = {
 "_edit_use_anchors_": false
 }
+
+[node name="bnt_midi_i" type="CheckBox" parent="."]
+margin_top = 192.0
+margin_right = 128.0
+margin_bottom = 224.0
+focus_mode = 0
+enabled_focus_mode = 0
+text = "MIDI Input"
+__meta__ = {
+"_edit_use_anchors_": false
+}
 [connection signal="item_selected" from="btn_tone" to="." method="_on_btn_tone_item_selected"]
 [connection signal="value_changed" from="slider_atk" to="." method="_on_slider_atk_value_changed"]
 [connection signal="value_changed" from="slider_rel" to="." method="_on_slider_rel_value_changed"]
 [connection signal="gui_input" from="img_keyboard" to="." method="_on_img_keyboard_gui_input"]
+[connection signal="toggled" from="bnt_midi_i" to="." method="_on_bnt_midi_i_toggled"]
