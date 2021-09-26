@@ -7,6 +7,10 @@
 buffer_length = 0.03
 
 [node name="mini_synth" type="Control"]
+anchor_right = 0.55
+anchor_bottom = 0.711
+margin_bottom = 0.0600281
+rect_min_size = Vector2( 528, 384 )
 script = ExtResource( 1 )
 __meta__ = {
 "_edit_use_anchors_": false
@@ -14,6 +18,17 @@ __meta__ = {
 
 [node name="stream_player" type="AudioStreamPlayer" parent="."]
 stream = SubResource( 1 )
+
+[node name="btn_enable" type="Button" parent="."]
+margin_left = 400.0
+margin_right = 528.0
+margin_bottom = 32.0
+toggle_mode = true
+pressed = true
+text = "Enable"
+__meta__ = {
+"_edit_use_anchors_": false
+}
 
 [node name="lbl_adsr_atk" type="Label" parent="."]
 margin_left = 128.0
@@ -115,7 +130,7 @@ __meta__ = {
 "_edit_use_anchors_": false
 }
 
-[node name="bnt_midi_i" type="CheckBox" parent="."]
+[node name="btn_midi_i" type="CheckBox" parent="."]
 margin_top = 192.0
 margin_right = 128.0
 margin_bottom = 224.0
@@ -125,8 +140,9 @@ text = "MIDI Input"
 __meta__ = {
 "_edit_use_anchors_": false
 }
+[connection signal="toggled" from="btn_enable" to="." method="_on_btn_enable_toggled"]
 [connection signal="item_selected" from="btn_tone" to="." method="_on_btn_tone_item_selected"]
 [connection signal="value_changed" from="slider_atk" to="." method="_on_slider_atk_value_changed"]
 [connection signal="value_changed" from="slider_rel" to="." method="_on_slider_rel_value_changed"]
 [connection signal="gui_input" from="img_keyboard" to="." method="_on_img_keyboard_gui_input"]
-[connection signal="toggled" from="bnt_midi_i" to="." method="_on_bnt_midi_i_toggled"]
+[connection signal="toggled" from="btn_midi_i" to="." method="_on_btn_midi_i_toggled"]

@@ -45,6 +45,50 @@ class CAudioBuffer:
         self.buffer.resize(new_size)
 
 
+class CEnvelopeGenerator:
+    var a_time: float = 0.0
+    var d_time: float = 0.0
+    var s_time: float = 0.0
+    var r_time: float = 0.0
+    var elapse_time: float = 0.0
+    var note_enable: bool = true
+    var time_enable: bool = true
+
+    func _init(_a: float, _d: float, _s: float, _r: float):
+        self.a_time = _a
+        self.d_time = _d
+        self.s_time = _s
+        self.r_time = _r
+
+    func note_of():
+        if self.note_enable == true:
+            self.elapse_time = self.a_time + self.d_time + self.s_time
+            self.note_enable = false
+
+    func is_work() -> bool:
+        return self.note_enable || self.time_enable 
+
+    func generate(delta) -> float:
+
+        var v: float = 0.0
+
+        if self.elapse_time < self.a_time:
+            v = min(self.elapse_time / self.a_time, 1.0)
+        elif self.elapse_time < (self.a_time + self.d_time):
+            v = min(self.elapse_time / self.a_time, 1.0)
+        elif self.elapse_time < (self.a_time + self.d_time + self.s_time):
+            v = min(self.elapse_time / self.a_time, 1.0)
+        elif self.elapse_time < (self.a_time + self.d_time + self.s_time + self.r_time):
+            v = 1.0 - min((self.elapse_time - (self.a_time + self.d_time + self.s_time)) / self.r_time, 1.0)
+        else:
+            self.time_enable = false
+            v = 0.0
+
+        self.elapse_time += delta
+
+        return v
+
+
 class CGenerator:
     func generate(_deg: float) -> float:
         assert(false)
@@ -75,68 +119,35 @@ class CGeneratorSquare:
 
 class CVoice:
 
-    var e_status: int = E_NOTE_STATUS.KOF
     var note: int = 0
     var step: int = 0
-    var elapse_time: float = 0.0
-    var release_time: float = 0.0
-    
-    var attack: float = 0.2
-    var release: float = 0.5
+    var o_eg: CEnvelopeGenerator = null
 
-    func _init(new_note: int):
+    func _init(new_note: int, _o_eg: CEnvelopeGenerator):
+        self.o_eg = _o_eg
         self.note = new_note
 
     func is_play() -> bool:
-        return self.e_status in [E_NOTE_STATUS.KON, E_NOTE_STATUS.KON_KEEP]
+        return self.o_eg.note_enable
 
-    func is_complete() -> bool:
-        return self.e_status == E_NOTE_STATUS.KOF
-
-    func calc():
-        if self.e_status == E_NOTE_STATUS.KOF_KEEP:
-            return 1.0 - min(self.release_time / self.release, 1.0)
-        elif self.e_status == E_NOTE_STATUS.KOF:
-            return 0.0
-        else:
-            return min(self.elapse_time / self.attack, 1.0)
-
-    func kon():
-        if self.e_status == E_NOTE_STATUS.KOF:
-            self.e_status = E_NOTE_STATUS.KON
-            self.release_time = 0.0
-            self.elapse_time = 0.0
-            self.step = 0
+    func is_work() -> bool:
+        return self.o_eg.is_work()
 
     func kof():
-        if self.e_status != E_NOTE_STATUS.KOF:
-            self.e_status = E_NOTE_STATUS.KOF_KEEP
+        self.o_eg.note_of()
 
-    func update(dtime: float, buf: CAudioBuffer, o_generator: CGenerator) -> void:
-
-        if self.is_complete() == true:
-            return
-        else:
-            if self.e_status == E_NOTE_STATUS.KOF_KEEP:
-                self.release_time += dtime
-                if self.release_time > self.release:
-                    self.e_status = E_NOTE_STATUS.KOF
-            
-        if self.e_status == E_NOTE_STATUS.KON:
-            self.e_status = E_NOTE_STATUS.KON_KEEP
+    func update(delta: float, buf: CAudioBuffer, o_generator: CGenerator) -> void:
 
         var freq: float = BASE_FREQ * pow(2, (self.note - CENTER_NOTE) / 12.0)
         var deg: float = (360.0 / 44000.0) * freq
+        var env: float = self.o_eg.generate(delta)
 
         var v: float = 0.0
         for n in range(buf.buffer.size()):
-            v = o_generator.generate(deg * self.step)
-            v *= self.calc()
+            v = o_generator.generate(deg * self.step) * env
             v *= VOLUME
             buf.buffer[n] += Vector2(v, v)
             self.step += 1
-
-        self.elapse_time += dtime
 
 
 func write_note_status(note_v: int, note_trig: bool) -> void:
@@ -155,8 +166,10 @@ func write_note_status_raw(target_note: int, note_trig: bool) -> void:
             if dict_note_status[target_note].is_play():
                 return
 
-        var o_voice: CVoice = CVoice.new(target_note)
-        o_voice.kon()
+        var o_voice: CVoice = CVoice.new(
+            target_note,
+            CEnvelopeGenerator.new(self.adsr_atk, 0.0, 9999.0, self.adsr_rel)
+            )
         dict_note_status[target_note] = o_voice
     else:
         if dict_note_status.has(target_note) != true:
@@ -198,11 +211,9 @@ func update(dtime: float, buf: CAudioBuffer):
 
     for o in dict_note_status.values():
         var o_voice: CVoice = o
-        if o_voice.is_complete() == true:
+        if o_voice.is_work() != true:
             list_k.append(o_voice.note)
         else:
-            o_voice.attack = adsr_atk
-            o_voice.release = adsr_rel
             o_voice.update(dtime, buf, o_generator)
 
     for note in list_k:
@@ -221,6 +232,9 @@ func _ready():
 
 func _process(delta):
 
+    if $btn_enable.pressed != true:
+        return
+
     var frame_size = stream_playback.get_frames_available()
     var buf = CAudioBuffer.new()
 
@@ -232,6 +246,9 @@ func _process(delta):
 
 
 func _input(event):
+
+    if $btn_enable.pressed != true:
+        return
 
     if event is InputEventKey:
         match event.scancode:
@@ -285,6 +302,16 @@ func get_note_position(position: Vector2) -> int:
     return note
 
 
+func _on_btn_enable_toggled(button_pressed):
+    if button_pressed == true:
+        stream_playback.clear_buffer()
+        $stream_player.seek(0)
+        $stream_player.play()
+    else:
+        $stream_player.stop()        
+        dict_note_status.clear()
+        
+
 func _on_img_keyboard_gui_input(event):
 
     var note: int = -1
@@ -319,7 +346,7 @@ func _on_slider_rel_value_changed(value):
     adsr_rel = value
 
 
-func _on_bnt_midi_i_toggled(button_pressed):
+func _on_btn_midi_i_toggled(button_pressed):
     if button_pressed == true:
         OS.open_midi_inputs()
     else:
